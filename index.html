@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pausa de Calma</title>
+
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" sizes="1024x1024" href="icon-1024.png">
+<meta name="theme-color" content="#1e3c72">
+
+<style>
+body{
+    margin:0;
+    font-family:-apple-system, BlinkMacSystemFont, sans-serif;
+    background:linear-gradient(135deg,#1e3c72,#2a5298);
+    height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    color:white;
+    text-align:center;
+}
+
+.container{
+    background:rgba(0,0,0,0.3);
+    padding:40px;
+    border-radius:25px;
+    backdrop-filter: blur(15px);
+    width:85%;
+    max-width:500px;
+}
+
+.circle{
+    width:150px;
+    height:150px;
+    border-radius:50%;
+    background:rgba(255,255,255,0.4);
+    margin:30px auto;
+    transition:transform 4s ease-in-out;
+}
+
+button{
+    padding:12px 25px;
+    border:none;
+    border-radius:25px;
+    background:white;
+    color:#1e3c72;
+    font-size:18px;
+    margin:5px;
+}
+
+select{
+    padding:8px;
+    border-radius:10px;
+    border:none;
+    margin-top:10px;
+}
+
+.frase{
+    margin-top:20px;
+    font-style:italic;
+    min-height:40px;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Respira</h2>
+    <div class="circle" id="circle"></div>
+    <p id="instruccion">Presiona iniciar</p>
+
+    <button onclick="iniciar()">Iniciar</button>
+    <button onclick="detener()">Detener</button>
+
+    <br>
+    <label>Duración:</label>
+    <select id="duracion">
+        <option value="300000">5 minutos</option>
+        <option value="600000">10 minutos</option>
+        <option value="900000">15 minutos</option>
+    </select>
+
+    <div class="frase" id="frase"></div>
+
+    <br><br>
+    <button onclick="toggleSonido()">🌧 Lluvia</button>
+</div>
+
+<audio id="lluvia" loop>
+<source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mpeg">
+</audio>
+
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js');
+}
+
+let circle = document.getElementById("circle");
+let instruccion = document.getElementById("instruccion");
+let frase = document.getElementById("frase");
+let lluvia = document.getElementById("lluvia");
+
+let intervalo;
+let temporizador;
+
+let frases = [
+    "Estás en un nuevo comienzo.",
+    "Respira… aquí estás seguro.",
+    "Un día a la vez.",
+    "No tienes que resolver todo hoy.",
+    "La calma también es fuerza."
+];
+
+function iniciar(){
+    ciclo();
+    let tiempo = document.getElementById("duracion").value;
+    temporizador = setTimeout(()=>{
+        detener();
+        alert("Sesión completada 🌿");
+    }, tiempo);
+}
+
+function detener(){
+    clearTimeout(temporizador);
+    clearTimeout(intervalo);
+    instruccion.innerText="Pausa finalizada";
+    circle.style.transform="scale(1)";
+}
+
+function ciclo(){
+    instruccion.innerText="Inhala";
+    circle.style.transform="scale(1.5)";
+
+    intervalo = setTimeout(()=>{
+        instruccion.innerText="Sostén";
+    },4000);
+
+    intervalo = setTimeout(()=>{
+        instruccion.innerText="Exhala";
+        circle.style.transform="scale(1)";
+    },8000);
+
+    intervalo = setTimeout(()=>{
+        frase.innerText=frases[Math.floor(Math.random()*frases.length)];
+        ciclo();
+    },14000);
+}
+
+function toggleSonido(){
+    if(lluvia.paused){
+        lluvia.play();
+    }else{
+        lluvia.pause();
+    }
+}
+</script>
+
+</body>
+</html>
