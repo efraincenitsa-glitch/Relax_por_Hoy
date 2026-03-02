@@ -1,3 +1,159 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pausa de Calma</title>
+
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" sizes="1024x1024" href="icon-1024.png">
+<meta name="theme-color" content="#1e3c72">
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+body{
+    margin:0;
+    font-family:-apple-system, BlinkMacSystemFont, sans-serif;
+    background:linear-gradient(135deg,#1e3c72,#2a5298);
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    color:white;
+    text-align:center;
+}
+
+.container{
+    background:rgba(0,0,0,0.3);
+    padding:30px;
+    border-radius:25px;
+    backdrop-filter: blur(15px);
+    width:90%;
+    max-width:520px;
+}
+
+.circle{
+    width:150px;
+    height:150px;
+    border-radius:50%;
+    background:rgba(255,255,255,0.4);
+    margin:20px auto;
+    transition:transform 4s ease-in-out;
+}
+
+button{
+    padding:12px 25px;
+    border:none;
+    border-radius:25px;
+    background:white;
+    color:#1e3c72;
+    font-size:16px;
+    margin:5px;
+    cursor:pointer;
+}
+
+select, textarea{
+    padding:8px;
+    border-radius:10px;
+    border:none;
+    margin-top:10px;
+    width:90%;
+}
+
+textarea{
+    resize:none;
+    height:60px;
+}
+
+.frase{
+    margin-top:15px;
+    font-style:italic;
+    min-height:40px;
+}
+
+.historial{
+    margin-top:15px;
+    font-size:14px;
+    max-height:120px;
+    overflow:auto;
+    text-align:left;
+}
+
+canvas{
+    margin-top:20px;
+    background:white;
+    border-radius:15px;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<h2>Respira</h2>
+<div class="circle" id="circle"></div>
+<p id="instruccion">Presiona iniciar</p>
+
+<button onclick="iniciar()">Iniciar</button>
+<button onclick="detener()">Detener</button>
+
+<br>
+<label>Duración:</label>
+<select id="duracion">
+    <option value="300000">5 minutos</option>
+    <option value="600000">10 minutos</option>
+    <option value="900000">15 minutos</option>
+</select>
+
+<div class="frase" id="frase"></div>
+
+<br>
+<button onclick="toggleSonido()">🌧 Lluvia</button>
+
+<h3>Registro emocional diario</h3>
+
+<select id="emocion">
+<option value="😊 Feliz">😊 Feliz</option>
+<option value="😌 Tranquilo">😌 Tranquilo</option>
+<option value="😔 Triste">😔 Triste</option>
+<option value="😟 Ansioso">😟 Ansioso</option>
+<option value="😤 Enojado">😤 Enojado</option>
+<option value="😴 Cansado">😴 Cansado</option>
+<option value="🙏 Agradecido">🙏 Agradecido</option>
+<option value="💪 Fuerte">💪 Fuerte</option>
+</select>
+
+<textarea id="nota" placeholder="Nota opcional..."></textarea>
+
+<button onclick="guardarEmocion()">Guardar emoción</button>
+<button onclick="borrarHistorial()">Borrar historial</button>
+
+<div class="historial" id="historial"></div>
+
+<h3>Resumen emocional</h3>
+<div id="resumenEmocional"></div>
+
+<h3>Reflexión inteligente</h3>
+<div id="mensajeInteligente"></div>
+
+<h3>Alerta emocional</h3>
+<div id="alertaEstres" style="font-weight:bold;"></div>
+
+<h3>Filtro</h3>
+<select id="filtroTiempo" onchange="actualizarAnalisis()">
+<option value="todos">Todo el historial</option>
+<option value="semana">Últimos 7 días</option>
+</select>
+
+<canvas id="graficoEmociones"></canvas>
+
+</div>
+
+<audio id="lluvia" loop>
+<source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mpeg">
+</audio>
+
 <script>
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js');
@@ -9,92 +165,67 @@ let frase = document.getElementById("frase");
 let lluvia = document.getElementById("lluvia");
 let grafico;
 
-/* ================= RESPIRACIÓN ================= */
+let timeoutSosten, timeoutExhala, timeoutLoop, temporizadorSesion;
 
-let timeoutInhala;
-let timeoutSosten;
-let timeoutExhala;
-let timeoutLoop;
-let temporizadorSesion;
-
-let frases = [
+let frases=[
 "Estás en un nuevo comienzo.","Respira… aquí estás seguro.","Un día a la vez.",
 "No tienes que resolver todo hoy.","La calma también es fuerza.",
 "Confía en tu proceso","Respira y avanza","Todo estará bien",
 "Suelta lo que pesa","Hoy es un buen día","Un paso a la vez",
-"Permítete descansar","Encuentra tu calma","Todo tiene su momento",
-"Eres más fuerte de lo que crees","Abraza el presente",
-"La paz está en ti","Haz espacio para lo nuevo"
+"Permítete descansar","Encuentra tu calma","Todo tiene su momento"
 ];
 
 function iniciar(){
-
-    detener(); // evita múltiples ciclos
-
+    detener();
     ciclo();
-
-    let tiempo = parseInt(document.getElementById("duracion").value);
-
-    temporizadorSesion = setTimeout(()=>{
-        detener();
-        alert("Sesión completada 🌿");
-    }, tiempo);
+    let tiempo=parseInt(document.getElementById("duracion").value);
+    temporizadorSesion=setTimeout(()=>{detener();alert("Sesión completada 🌿");},tiempo);
 }
 
 function detener(){
-
-    clearTimeout(timeoutInhala);
     clearTimeout(timeoutSosten);
     clearTimeout(timeoutExhala);
     clearTimeout(timeoutLoop);
     clearTimeout(temporizadorSesion);
-
     instruccion.innerText="Pausa finalizada";
     circle.style.transform="scale(1)";
 }
 
 function ciclo(){
-
     instruccion.innerText="Inhala";
     circle.style.transform="scale(1.5)";
 
-    timeoutSosten = setTimeout(()=>{
-        instruccion.innerText="Sostén";
-    },4000);
+    timeoutSosten=setTimeout(()=>{instruccion.innerText="Sostén";},4000);
 
-    timeoutExhala = setTimeout(()=>{
+    timeoutExhala=setTimeout(()=>{
         instruccion.innerText="Exhala";
         circle.style.transform="scale(1)";
     },8000);
 
-    timeoutLoop = setTimeout(()=>{
+    timeoutLoop=setTimeout(()=>{
         frase.innerText=frases[Math.floor(Math.random()*frases.length)];
         ciclo();
     },14000);
 }
 
 function toggleSonido(){
-    lluvia.paused ? lluvia.play() : lluvia.pause();
+    lluvia.paused?lluvia.play():lluvia.pause();
 }
 
-/* ================= REGISTRO ================= */
+/* ===== REGISTRO ===== */
 
 function guardarEmocion(){
-
     let emocion=document.getElementById("emocion").value;
     let nota=document.getElementById("nota").value;
     let fecha=new Date().toLocaleDateString();
     let hora=new Date().toLocaleTimeString();
-
     let registro={fecha,hora,emocion,nota};
 
     let historial=JSON.parse(localStorage.getItem("registroEmocional"))||[];
     historial.push(registro);
-
     localStorage.setItem("registroEmocional",JSON.stringify(historial));
 
     document.getElementById("nota").value="";
-
     mostrarHistorial();
     mostrarResumenEmocional();
     actualizarAnalisis();
@@ -108,146 +239,73 @@ function borrarHistorial(){
 }
 
 function mostrarHistorial(){
-
     let historial=JSON.parse(localStorage.getItem("registroEmocional"))||[];
-    let contenedor=document.getElementById("historial");
-
-    contenedor.innerHTML="";
-
+    let cont=document.getElementById("historial");
+    cont.innerHTML="";
     historial.slice().reverse().forEach(r=>{
-        contenedor.innerHTML+=
-        `<div>
-            <strong>${r.fecha} ${r.hora}</strong><br>
-            ${r.emocion}<br>
-            <small>${r.nota}</small>
-            <hr>
-        </div>`;
+        cont.innerHTML+=`<div><strong>${r.fecha} ${r.hora}</strong><br>${r.emocion}<br><small>${r.nota}</small><hr></div>`;
     });
 }
 
 function mostrarResumenEmocional(){
-
     let historial=JSON.parse(localStorage.getItem("registroEmocional"))||[];
-    let resumen={};
-    let contenedor=document.getElementById("resumenEmocional");
-
-    contenedor.innerHTML="";
-
-    historial.forEach(r=>{
-        resumen[r.emocion]=(resumen[r.emocion]||0)+1;
-    });
-
-    for(let e in resumen){
-        contenedor.innerHTML+=`${e}: <strong>${resumen[e]}</strong><br>`;
-    }
+    let resumen={},cont=document.getElementById("resumenEmocional");
+    cont.innerHTML="";
+    historial.forEach(r=>{resumen[r.emocion]=(resumen[r.emocion]||0)+1;});
+    for(let e in resumen){cont.innerHTML+=`${e}: <strong>${resumen[e]}</strong><br>`;}
 }
 
-/* ================= ANALÍTICA ================= */
+/* ===== ANALÍTICA ===== */
 
 function actualizarAnalisis(){
-
     let historial=JSON.parse(localStorage.getItem("registroEmocional"))||[];
     analizarEmociones(historial);
 }
 
 function analizarEmociones(historial){
 
-    let mensajeDiv=document.getElementById("mensajeInteligente");
-    mensajeDiv.innerHTML=""; // 🔥 limpia antes
+    let mensaje=document.getElementById("mensajeInteligente");
+    mensaje.innerHTML="";
+    document.getElementById("alertaEstres").innerHTML="";
 
     if(historial.length===0){
-        mensajeDiv.innerHTML="No hay datos.";
-        document.getElementById("alertaEstres").innerHTML="";
+        mensaje.innerHTML="No hay datos.";
+        if(grafico)grafico.destroy();
         return;
     }
 
     let resumen={};
+    historial.forEach(r=>{resumen[r.emocion]=(resumen[r.emocion]||0)+1;});
+    let dominante=Object.keys(resumen).reduce((a,b)=>resumen[a]>resumen[b]?a:b);
 
-    historial.forEach(r=>{
-        resumen[r.emocion]=(resumen[r.emocion]||0)+1;
-    });
+    if(dominante.includes("Ansioso")||dominante.includes("Triste")||dominante.includes("Enojado"))
+        mensaje.innerHTML="Has estado experimentando emociones desafiantes. Considera más pausas conscientes.";
+    else if(dominante.includes("Feliz")||dominante.includes("Agradecido")||dominante.includes("Fuerte"))
+        mensaje.innerHTML="Tu tendencia emocional es positiva. Sigue cultivando estos hábitos.";
+    else
+        mensaje.innerHTML="Tu estado emocional muestra equilibrio.";
 
-    let dominante=Object.keys(resumen)
-        .reduce((a,b)=>resumen[a]>resumen[b]?a:b);
-
-    generarMensaje(dominante);
     generarGrafico(resumen);
     analizarPatronEmocional(historial);
 }
 
-function generarMensaje(e){
-
-    let mensajeDiv=document.getElementById("mensajeInteligente");
-
-    if(e.includes("Ansioso")||e.includes("Triste")||e.includes("Enojado"))
-        mensajeDiv.innerHTML="Has estado experimentando emociones desafiantes. Considera más pausas conscientes.";
-    else if(e.includes("Feliz")||e.includes("Agradecido")||e.includes("Fuerte"))
-        mensajeDiv.innerHTML="Tu tendencia emocional es positiva. Sigue cultivando estos hábitos.";
-    else
-        mensajeDiv.innerHTML="Tu estado emocional muestra equilibrio.";
-}
-
 function generarGrafico(resumen){
-
     let ctx=document.getElementById("graficoEmociones").getContext("2d");
-
-    if(grafico) grafico.destroy();
-
-    grafico=new Chart(ctx,{
-        type:"doughnut",
-        data:{
-            labels:Object.keys(resumen),
-            datasets:[{
-                data:Object.values(resumen)
-            }]
-        }
-    });
+    if(grafico)grafico.destroy();
+    grafico=new Chart(ctx,{type:"doughnut",data:{labels:Object.keys(resumen),datasets:[{data:Object.values(resumen)}]}});
 }
-
-/* ===== ALERTA Y PATRÓN ===== */
 
 function analizarPatronEmocional(historial){
-
     let ultimos=historial.slice(-7);
-
-    let negativas=ultimos.filter(r=>
-        r.emocion.includes("Ansioso")||
-        r.emocion.includes("Triste")||
-        r.emocion.includes("Enojado")
-    ).length;
-
-    let alerta=document.getElementById("alertaEstres");
-
+    let negativas=ultimos.filter(r=>r.emocion.includes("Ansioso")||r.emocion.includes("Triste")||r.emocion.includes("Enojado")).length;
     if(negativas>=4)
-        alerta.innerHTML="🚨 Estrés recurrente detectado. Considera apoyo o descanso profundo.";
-    else
-        alerta.innerHTML="";
-
-    generarFrasePersonalizada(historial);
+        document.getElementById("alertaEstres").innerHTML="🚨 Estrés recurrente detectado. Considera descanso profundo.";
 }
-
-function generarFrasePersonalizada(historial){
-
-    let pos=0,neg=0;
-
-    historial.forEach(r=>{
-        if(r.emocion.includes("Feliz")||r.emocion.includes("Agradecido")||r.emocion.includes("Fuerte"))pos++;
-        if(r.emocion.includes("Ansioso")||r.emocion.includes("Triste")||r.emocion.includes("Enojado"))neg++;
-    });
-
-    let mensajeDiv=document.getElementById("mensajeInteligente");
-
-    if(neg>pos)
-        mensajeDiv.innerHTML+="<br><br>💡 Patrón de carga emocional detectado. Intenta integrar 5 minutos extra de respiración diaria.";
-    else if(pos>neg)
-        mensajeDiv.innerHTML+="<br><br>🌟 Patrón positivo sólido. Continúa fortaleciendo tus hábitos actuales.";
-    else
-        mensajeDiv.innerHTML+="<br><br>⚖️ Patrón equilibrado. Mantén constancia.";
-}
-
-/* ===== INICIO ===== */
 
 mostrarHistorial();
 mostrarResumenEmocional();
 actualizarAnalisis();
 </script>
+
+</body>
+</html>
