@@ -50,17 +50,31 @@ button{
     margin:5px;
 }
 
-select{
+select, textarea{
     padding:8px;
     border-radius:10px;
     border:none;
     margin-top:10px;
+    width:90%;
+}
+
+textarea{
+    resize:none;
+    height:60px;
 }
 
 .frase{
     margin-top:20px;
     font-style:italic;
     min-height:40px;
+}
+
+.historial{
+    margin-top:15px;
+    font-size:14px;
+    max-height:120px;
+    overflow:auto;
+    text-align:left;
 }
 </style>
 </head>
@@ -86,6 +100,31 @@ select{
 
     <br><br>
     <button onclick="toggleSonido()">🌧 Lluvia</button>
+
+    <!-- ========================= -->
+    <!-- REGISTRO EMOCIONAL DIARIO -->
+    <!-- ========================= -->
+
+    <h3>Registro emocional diario</h3>
+
+    <select id="emocion">
+        <option value="😊 Feliz">😊 Feliz</option>
+        <option value="😌 Tranquilo">😌 Tranquilo</option>
+        <option value="😔 Triste">😔 Triste</option>
+        <option value="😟 Ansioso">😟 Ansioso</option>
+        <option value="😤 Enojado">😤 Enojado</option>
+        <option value="😴 Cansado">😴 Cansado</option>
+        <option value="🙏 Agradecido">🙏 Agradecido</option>
+        <option value="💪 Fuerte">💪 Fuerte</option>
+    </select>
+
+    <textarea id="nota" placeholder="Nota opcional..."></textarea>
+
+    <button onclick="guardarEmocion()">Guardar emoción</button>
+    <button onclick="borrarHistorial()">Borrar historial</button>
+
+    <div class="historial" id="historial"></div>
+
 </div>
 
 <audio id="lluvia" loop>
@@ -111,56 +150,6 @@ let frases = [
     "Un día a la vez.",
     "No tienes que resolver todo hoy.",
     "La calma también es fuerza."
-    "Estás en un nuevo comienzo",
-    "Confía en tu proceso",
-    "Respira y avanza",
-    "Todo estará bien",
-    "Suelta lo que pesa",
-    "Hoy es un buen día",
-    "Un paso a la vez",
-    "Permítete descansar",
-    "Encuentra tu calma",
-    "Todo tiene su momento",
-    "Eres más fuerte de lo que crees",
-    "Abraza el presente",
-    "La paz está en ti",
-    "Haz espacio para lo nuevo",
-    "Tu energía es valiosa",
-    "Fluye sin miedo",
-    "Escucha a tu corazón",
-    "Permite que la luz entre",
-    "Cada día cuenta",
-    "Vas por buen camino",
-    "Confía en tu intuición",
-    "Respira profundo",
-    "Es tiempo de renacer",
-    "Hoy eliges estar bien",
-    "Avanza con serenidad",
-    "Todo empieza contigo",
-    "Encuentra belleza en lo simple",
-    "Permanece en armonía",
-    "Eres suficiente",
-    "La calma te pertenece",
-    "Hoy eliges paz",
-    "Cada respiro es una oportunidad",
-    "Libérate del miedo",
-    "El cambio es crecimiento",
-    "Vive con intención",
-    "Escoge tu paz",
-    "La claridad llega",
-    "Deja que todo fluya",
-    "El universo te acompaña",
-    "Tu alma sabe el camino",
-    "Cree en tu luz",
-    "Regálate un descanso",
-    "Permite que la vida te sorprenda",
-    "El silencio también habla",
-    "Tu bienestar es prioridad",
-    "Hazlo con amor",
-    "Estás donde debes estar",
-    "Brilla sin dudar",
-    "Camina con confianza",
-    "Hoy es un nuevo inicio",
 ];
 
 function iniciar(){
@@ -205,6 +194,55 @@ function toggleSonido(){
         lluvia.pause();
     }
 }
+
+/* ===============================
+   REGISTRO EMOCIONAL FUNCIONAL
+================================ */
+
+function guardarEmocion(){
+    let emocion = document.getElementById("emocion").value;
+    let nota = document.getElementById("nota").value;
+    let fecha = new Date().toLocaleDateString();
+    let hora = new Date().toLocaleTimeString();
+
+    let registro = {
+        fecha: fecha,
+        hora: hora,
+        emocion: emocion,
+        nota: nota
+    };
+
+    let historial = JSON.parse(localStorage.getItem("registroEmocional")) || [];
+    historial.push(registro);
+    localStorage.setItem("registroEmocional", JSON.stringify(historial));
+
+    document.getElementById("nota").value="";
+    mostrarHistorial();
+}
+
+function mostrarHistorial(){
+    let historial = JSON.parse(localStorage.getItem("registroEmocional")) || [];
+    let contenedor = document.getElementById("historial");
+    contenedor.innerHTML="";
+
+    historial.slice().reverse().forEach(r=>{
+        contenedor.innerHTML += `
+        <div>
+        <strong>${r.fecha} ${r.hora}</strong><br>
+        ${r.emocion}<br>
+        <small>${r.nota}</small>
+        <hr>
+        </div>
+        `;
+    });
+}
+
+function borrarHistorial(){
+    localStorage.removeItem("registroEmocional");
+    mostrarHistorial();
+}
+
+mostrarHistorial();
 </script>
 
 </body>
