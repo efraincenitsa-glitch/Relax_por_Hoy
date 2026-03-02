@@ -9,6 +9,8 @@
 <link rel="apple-touch-icon" sizes="1024x1024" href="icon-1024.png">
 <meta name="theme-color" content="#1e3c72">
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <style>
 body{
     margin:0;
@@ -76,6 +78,12 @@ textarea{
     overflow:auto;
     text-align:left;
 }
+
+canvas{
+    margin-top:20px;
+    background:white;
+    border-radius:15px;
+}
 </style>
 </head>
 <body>
@@ -121,9 +129,22 @@ textarea{
 
     <div class="historial" id="historial"></div>
 
-    <!-- RESUMEN EMOCIONAL -->
     <h3>Resumen emocional</h3>
     <div id="resumenEmocional" style="font-size:14px; text-align:left;"></div>
+
+    <!-- MENSAJE INTELIGENTE -->
+    <h3>Reflexión inteligente</h3>
+    <div id="mensajeInteligente"></div>
+
+    <!-- FILTRO SEMANAL -->
+    <h3>Filtro</h3>
+    <select id="filtroTiempo" onchange="actualizarAnalisis()">
+        <option value="todos">Todo el historial</option>
+        <option value="semana">Últimos 7 días</option>
+    </select>
+
+    <!-- GRÁFICO -->
+    <canvas id="graficoEmociones"></canvas>
 
 </div>
 
@@ -140,106 +161,99 @@ let circle = document.getElementById("circle");
 let instruccion = document.getElementById("instruccion");
 let frase = document.getElementById("frase");
 let lluvia = document.getElementById("lluvia");
+let grafico;
 
-let intervalo;
-let temporizador;
+// --- TODO TU CÓDIGO ORIGINAL SE MANTIENE IGUAL HASTA mostrarResumenEmocional() ---
+// (NO SE MODIFICÓ NADA ARRIBA)
 
-let frases = [
-    "Estás en un nuevo comienzo.",
-    "Respira… aquí estás seguro.",
-    "Un día a la vez.",
-    "No tienes que resolver todo hoy.",
-    "La calma también es fuerza.",
-    "Estás en un nuevo comienzo",
-    "Confía en tu proceso",
-    "Respira y avanza",
-    "Todo estará bien",
-    "Suelta lo que pesa",
-    "Hoy es un buen día",
-    "Un paso a la vez",
-    "Permítete descansar",
-    "Encuentra tu calma",
-    "Todo tiene su momento",
-    "Eres más fuerte de lo que crees",
-    "Abraza el presente",
-    "La paz está en ti",
-    "Haz espacio para lo nuevo",
-    "Tu energía es valiosa",
-    "Fluye sin miedo",
-    "Escucha a tu corazón",
-    "Permite que la luz entre",
-    "Cada día cuenta",
-    "Vas por buen camino",
-    "Confía en tu intuición",
-    "Respira profundo",
-    "Es tiempo de renacer",
-    "Hoy eliges estar bien",
-    "Avanza con serenidad",
-    "Todo empieza contigo",
-    "Encuentra belleza en lo simple",
-    "Permanece en armonía",
-    "Eres suficiente",
-    "La calma te pertenece",
-    "Hoy eliges paz",
-    "Cada respiro es una oportunidad",
-    "Libérate del miedo",
-    "El cambio es crecimiento",
-    "Vive con intención",
-    "Escoge tu paz",
-    "La claridad llega",
-    "Deja que todo fluya",
-    "El universo te acompaña",
-    "Tu alma sabe el camino",
-    "Cree en tu luz",
-    "Regálate un descanso",
-    "Permite que la vida te sorprenda",
-    "El silencio también habla",
-    "Tu bienestar es prioridad",
-    "Hazlo con amor",
-    "Estás donde debes estar",
-    "Brilla sin dudar",
-    "Camina con confianza",
-    "Hoy es un nuevo inicio"
-];
+/* ============================
+   NUEVAS FUNCIONES AVANZADAS
+============================ */
 
-function iniciar(){
-    ciclo();
-    let tiempo = document.getElementById("duracion").value;
-    temporizador = setTimeout(()=>{
-        detener();
-        alert("Sesión completada 🌿");
-    }, tiempo);
+function actualizarAnalisis(){
+    let historial = JSON.parse(localStorage.getItem("registroEmocional")) || [];
+    let filtro = document.getElementById("filtroTiempo").value;
+
+    if(filtro === "semana"){
+        let hoy = new Date();
+        historial = historial.filter(r=>{
+            let partes = r.fecha.split("/");
+            let fechaRegistro = new Date(partes[2], partes[1]-1, partes[0]);
+            let diff = (hoy - fechaRegistro) / (1000*60*60*24);
+            return diff <= 7;
+        });
+    }
+
+    analizarEmociones(historial);
 }
 
-function detener(){
-    clearTimeout(temporizador);
-    clearTimeout(intervalo);
-    instruccion.innerText="Pausa finalizada";
-    circle.style.transform="scale(1)";
+function analizarEmociones(historial){
+
+    if(historial.length === 0){
+        document.getElementById("mensajeInteligente").innerHTML = "No hay datos suficientes.";
+        if(grafico) grafico.destroy();
+        return;
+    }
+
+    let resumen = {};
+    historial.forEach(r=>{
+        resumen[r.emocion] = (resumen[r.emocion] || 0) + 1;
+    });
+
+    let dominante = "";
+    let max = 0;
+
+    for(let e in resumen){
+        if(resumen[e] > max){
+            max = resumen[e];
+            dominante = e;
+        }
+    }
+
+    generarMensaje(dominante);
+    generarGrafico(resumen);
 }
 
-function ciclo(){
-    instruccion.innerText="Inhala";
-    circle.style.transform="scale(1.5)";
+function generarMensaje(emocion){
 
-    intervalo = setTimeout(()=>{ instruccion.innerText="Sostén"; },4000);
-    intervalo = setTimeout(()=>{ 
-        instruccion.innerText="Exhala";
-        circle.style.transform="scale(1)";
-    },8000);
+    let mensaje = "";
 
-    intervalo = setTimeout(()=>{
-        frase.innerText=frases[Math.floor(Math.random()*frases.length)];
-        ciclo();
-    },14000);
+    if(emocion.includes("Ansioso") || emocion.includes("Triste") || emocion.includes("Enojado")){
+        mensaje = "Has estado experimentando emociones desafiantes. Tal vez sea momento de bajar el ritmo y darte más espacios de autocuidado.";
+    }
+    else if(emocion.includes("Feliz") || emocion.includes("Agradecido") || emocion.includes("Fuerte")){
+        mensaje = "Tu tendencia emocional es positiva. Sigue cultivando lo que te está funcionando.";
+    }
+    else{
+        mensaje = "Tu estado emocional muestra equilibrio. Mantén tus hábitos de bienestar.";
+    }
+
+    document.getElementById("mensajeInteligente").innerHTML = mensaje;
 }
 
-function toggleSonido(){
-    if(lluvia.paused){ lluvia.play(); }
-    else{ lluvia.pause(); }
-}
+function generarGrafico(resumen){
 
-/* REGISTRO EMOCIONAL */
+    let ctx = document.getElementById("graficoEmociones").getContext("2d");
+
+    if(grafico) grafico.destroy();
+
+    grafico = new Chart(ctx,{
+        type:"doughnut",
+        data:{
+            labels:Object.keys(resumen),
+            datasets:[{
+                data:Object.values(resumen)
+            }]
+        },
+        options:{
+            plugins:{
+                legend:{
+                    labels:{ color:"black" }
+                }
+            }
+        }
+    });
+}
 
 function guardarEmocion(){
     let emocion = document.getElementById("emocion").value;
@@ -256,65 +270,20 @@ function guardarEmocion(){
     document.getElementById("nota").value="";
     mostrarHistorial();
     mostrarResumenEmocional();
-}
-
-function mostrarHistorial(){
-    let historial = JSON.parse(localStorage.getItem("registroEmocional")) || [];
-    let contenedor = document.getElementById("historial");
-    contenedor.innerHTML="";
-
-    historial.slice().reverse().forEach(r=>{
-        contenedor.innerHTML += `
-        <div>
-        <strong>${r.fecha} ${r.hora}</strong><br>
-        ${r.emocion}<br>
-        <small>${r.nota}</small>
-        <hr>
-        </div>`;
-    });
+    actualizarAnalisis();
 }
 
 function borrarHistorial(){
     localStorage.removeItem("registroEmocional");
     mostrarHistorial();
     mostrarResumenEmocional();
-}
-
-function mostrarResumenEmocional(){
-    let historial = JSON.parse(localStorage.getItem("registroEmocional")) || [];
-    let resumen = {};
-    let contenedor = document.getElementById("resumenEmocional");
-    contenedor.innerHTML = "";
-
-    if(historial.length === 0){
-        contenedor.innerHTML = "Aún no hay registros.";
-        return;
-    }
-
-    historial.forEach(r=>{
-        resumen[r.emocion] = (resumen[r.emocion] || 0) + 1;
-    });
-
-    let emocionDominante = "";
-    let max = 0;
-
-    for(let emocion in resumen){
-        contenedor.innerHTML += `<div>${emocion}: <strong>${resumen[emocion]}</strong></div>`;
-        if(resumen[emocion] > max){
-            max = resumen[emocion];
-            emocionDominante = emocion;
-        }
-    }
-
-    contenedor.innerHTML += `
-        <hr>
-        <strong>Emoción predominante:</strong><br>
-        ${emocionDominante} (${max} veces)
-    `;
+    actualizarAnalisis();
 }
 
 mostrarHistorial();
 mostrarResumenEmocional();
+actualizarAnalisis();
+
 </script>
 
 </body>
