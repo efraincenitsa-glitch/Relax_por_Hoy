@@ -101,10 +101,6 @@ textarea{
     <br><br>
     <button onclick="toggleSonido()">🌧 Lluvia</button>
 
-    <!-- ========================= -->
-    <!-- REGISTRO EMOCIONAL DIARIO -->
-    <!-- ========================= -->
-
     <h3>Registro emocional diario</h3>
 
     <select id="emocion">
@@ -124,6 +120,10 @@ textarea{
     <button onclick="borrarHistorial()">Borrar historial</button>
 
     <div class="historial" id="historial"></div>
+
+    <!-- RESUMEN EMOCIONAL -->
+    <h3>Resumen emocional</h3>
+    <div id="resumenEmocional" style="font-size:14px; text-align:left;"></div>
 
 </div>
 
@@ -222,11 +222,8 @@ function ciclo(){
     instruccion.innerText="Inhala";
     circle.style.transform="scale(1.5)";
 
-    intervalo = setTimeout(()=>{
-        instruccion.innerText="Sostén";
-    },4000);
-
-    intervalo = setTimeout(()=>{
+    intervalo = setTimeout(()=>{ instruccion.innerText="Sostén"; },4000);
+    intervalo = setTimeout(()=>{ 
         instruccion.innerText="Exhala";
         circle.style.transform="scale(1)";
     },8000);
@@ -238,16 +235,11 @@ function ciclo(){
 }
 
 function toggleSonido(){
-    if(lluvia.paused){
-        lluvia.play();
-    }else{
-        lluvia.pause();
-    }
+    if(lluvia.paused){ lluvia.play(); }
+    else{ lluvia.pause(); }
 }
 
-/* ===============================
-   REGISTRO EMOCIONAL FUNCIONAL
-================================ */
+/* REGISTRO EMOCIONAL */
 
 function guardarEmocion(){
     let emocion = document.getElementById("emocion").value;
@@ -255,12 +247,7 @@ function guardarEmocion(){
     let fecha = new Date().toLocaleDateString();
     let hora = new Date().toLocaleTimeString();
 
-    let registro = {
-        fecha: fecha,
-        hora: hora,
-        emocion: emocion,
-        nota: nota
-    };
+    let registro = { fecha, hora, emocion, nota };
 
     let historial = JSON.parse(localStorage.getItem("registroEmocional")) || [];
     historial.push(registro);
@@ -268,6 +255,7 @@ function guardarEmocion(){
 
     document.getElementById("nota").value="";
     mostrarHistorial();
+    mostrarResumenEmocional();
 }
 
 function mostrarHistorial(){
@@ -282,17 +270,51 @@ function mostrarHistorial(){
         ${r.emocion}<br>
         <small>${r.nota}</small>
         <hr>
-        </div>
-        `;
+        </div>`;
     });
 }
 
 function borrarHistorial(){
     localStorage.removeItem("registroEmocional");
     mostrarHistorial();
+    mostrarResumenEmocional();
+}
+
+function mostrarResumenEmocional(){
+    let historial = JSON.parse(localStorage.getItem("registroEmocional")) || [];
+    let resumen = {};
+    let contenedor = document.getElementById("resumenEmocional");
+    contenedor.innerHTML = "";
+
+    if(historial.length === 0){
+        contenedor.innerHTML = "Aún no hay registros.";
+        return;
+    }
+
+    historial.forEach(r=>{
+        resumen[r.emocion] = (resumen[r.emocion] || 0) + 1;
+    });
+
+    let emocionDominante = "";
+    let max = 0;
+
+    for(let emocion in resumen){
+        contenedor.innerHTML += `<div>${emocion}: <strong>${resumen[emocion]}</strong></div>`;
+        if(resumen[emocion] > max){
+            max = resumen[emocion];
+            emocionDominante = emocion;
+        }
+    }
+
+    contenedor.innerHTML += `
+        <hr>
+        <strong>Emoción predominante:</strong><br>
+        ${emocionDominante} (${max} veces)
+    `;
 }
 
 mostrarHistorial();
+mostrarResumenEmocional();
 </script>
 
 </body>
