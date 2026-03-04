@@ -6,7 +6,6 @@
 <title>Pausa de Calma</title>
 
 <link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" sizes="1024x1024" href="icon-1024.png">
 <meta name="theme-color" content="#1e3c72">
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -30,7 +29,7 @@ body{
     border-radius:25px;
     backdrop-filter: blur(15px);
     width:90%;
-    max-width:520px;
+    max-width:550px;
 }
 
 .circle{
@@ -101,15 +100,12 @@ canvas{
 <br>
 <label>Duración:</label>
 <select id="duracion">
-    <option value="300000">5 minutos</option>
-    <option value="600000">10 minutos</option>
-    <option value="900000">15 minutos</option>
+<option value="300000">5 minutos</option>
+<option value="600000">10 minutos</option>
+<option value="900000">15 minutos</option>
 </select>
 
 <div class="frase" id="frase"></div>
-
-<br>
-<button onclick="toggleSonido()">🌧 Lluvia</button>
 
 <h3>Registro emocional diario</h3>
 
@@ -131,180 +127,23 @@ canvas{
 
 <div class="historial" id="historial"></div>
 
-<h3>Resumen emocional</h3>
+<h3>Resumen emocional general</h3>
 <div id="resumenEmocional"></div>
 
-<h3>Reflexión inteligente</h3>
-<div id="mensajeInteligente"></div>
-
-<h3>Alerta emocional</h3>
-<div id="alertaEstres" style="font-weight:bold;"></div>
+<h3>Correlación Luna vs Emociones</h3>
+<div id="correlacionLunar"></div>
 
 <h3>Fase lunar actual</h3>
 <div id="faseLunar"></div>
-<div id="mensajeLunar" style="font-style:italic;"></div>
-
-<h3>Filtro</h3>
-<select id="filtroTiempo" onchange="actualizarAnalisis()">
-<option value="todos">Todo el historial</option>
-<option value="semana">Últimos 7 días</option>
-</select>
 
 <canvas id="graficoEmociones"></canvas>
+<canvas id="graficoLunar"></canvas>
 
 </div>
 
-<audio id="lluvia" loop>
-<source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mpeg">
-</audio>
-
 <script>
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js');
-}
-
-let circle = document.getElementById("circle");
-let instruccion = document.getElementById("instruccion");
-let frase = document.getElementById("frase");
-let lluvia = document.getElementById("lluvia");
-let grafico;
-
-let timeoutSosten, timeoutExhala, timeoutLoop, temporizadorSesion;
-
-let frases=[
-"Estás en un nuevo comienzo.","Respira… aquí estás seguro.","Un día a la vez.",
-"No tienes que resolver todo hoy.","La calma también es fuerza.",
-"Confía en tu proceso","Respira y avanza","Todo estará bien",
-"Suelta lo que pesa","Hoy es un buen día","Un paso a la vez",
-"Permítete descansar","Encuentra tu calma","Todo tiene su momento"
-];
-
-function iniciar(){
-    detener();
-    ciclo();
-    let tiempo=parseInt(document.getElementById("duracion").value);
-    temporizadorSesion=setTimeout(()=>{detener();alert("Sesión completada 🌿");},tiempo);
-}
-
-function detener(){
-    clearTimeout(timeoutSosten);
-    clearTimeout(timeoutExhala);
-    clearTimeout(timeoutLoop);
-    clearTimeout(temporizadorSesion);
-    instruccion.innerText="Pausa finalizada";
-    circle.style.transform="scale(1)";
-}
-
-function ciclo(){
-    instruccion.innerText="Inhala";
-    circle.style.transform="scale(1.5)";
-
-    timeoutSosten=setTimeout(()=>{instruccion.innerText="Sostén";},4000);
-
-    timeoutExhala=setTimeout(()=>{
-        instruccion.innerText="Exhala";
-        circle.style.transform="scale(1)";
-    },8000);
-
-    timeoutLoop=setTimeout(()=>{
-        frase.innerText=frases[Math.floor(Math.random()*frases.length)];
-        ciclo();
-    },14000);
-}
-
-function toggleSonido(){
-    lluvia.paused?lluvia.play():lluvia.pause();
-}
-
-/* ===== REGISTRO ===== */
-
-function guardarEmocion(){
-    let emocion=document.getElementById("emocion").value;
-    let nota=document.getElementById("nota").value;
-    let fecha=new Date().toLocaleDateString();
-    let hora=new Date().toLocaleTimeString();
-    let registro={fecha,hora,emocion,nota};
-
-    let historial=JSON.parse(localStorage.getItem("registroEmocional"))||[];
-    historial.push(registro);
-    localStorage.setItem("registroEmocional",JSON.stringify(historial));
-
-    document.getElementById("nota").value="";
-    mostrarHistorial();
-    mostrarResumenEmocional();
-    actualizarAnalisis();
-}
-
-function borrarHistorial(){
-    localStorage.removeItem("registroEmocional");
-    mostrarHistorial();
-    mostrarResumenEmocional();
-    actualizarAnalisis();
-}
-
-function mostrarHistorial(){
-    let historial=JSON.parse(localStorage.getItem("registroEmocional"))||[];
-    let cont=document.getElementById("historial");
-    cont.innerHTML="";
-    historial.slice().reverse().forEach(r=>{
-        cont.innerHTML+=`<div><strong>${r.fecha} ${r.hora}</strong><br>${r.emocion}<br><small>${r.nota}</small><hr></div>`;
-    });
-}
-
-function mostrarResumenEmocional(){
-    let historial=JSON.parse(localStorage.getItem("registroEmocional"))||[];
-    let resumen={},cont=document.getElementById("resumenEmocional");
-    cont.innerHTML="";
-    historial.forEach(r=>{resumen[r.emocion]=(resumen[r.emocion]||0)+1;});
-    for(let e in resumen){cont.innerHTML+=`${e}: <strong>${resumen[e]}</strong><br>`;}
-}
-
-/* ===== ANALÍTICA ===== */
-
-function actualizarAnalisis(){
-    let historial=JSON.parse(localStorage.getItem("registroEmocional"))||[];
-    analizarEmociones(historial);
-}
-
-function analizarEmociones(historial){
-
-    let mensaje=document.getElementById("mensajeInteligente");
-    mensaje.innerHTML="";
-    document.getElementById("alertaEstres").innerHTML="";
-
-    if(historial.length===0){
-        mensaje.innerHTML="No hay datos.";
-        if(grafico)grafico.destroy();
-        return;
-    }
-
-    let resumen={};
-    historial.forEach(r=>{resumen[r.emocion]=(resumen[r.emocion]||0)+1;});
-    let dominante=Object.keys(resumen).reduce((a,b)=>resumen[a]>resumen[b]?a:b);
-
-    if(dominante.includes("Ansioso")||dominante.includes("Triste")||dominante.includes("Enojado"))
-        mensaje.innerHTML="Has estado experimentando emociones desafiantes. Considera más pausas conscientes.";
-    else if(dominante.includes("Feliz")||dominante.includes("Agradecido")||dominante.includes("Fuerte"))
-        mensaje.innerHTML="Tu tendencia emocional es positiva. Sigue cultivando estos hábitos.";
-    else
-        mensaje.innerHTML="Tu estado emocional muestra equilibrio.";
-
-    generarGrafico(resumen);
-    analizarPatronEmocional(historial);
-}
-
-function generarGrafico(resumen){
-    let ctx=document.getElementById("graficoEmociones").getContext("2d");
-    if(grafico)grafico.destroy();
-    grafico=new Chart(ctx,{type:"doughnut",data:{labels:Object.keys(resumen),datasets:[{data:Object.values(resumen)}]}});
-}
-
-function analizarPatronEmocional(historial){
-    let ultimos=historial.slice(-7);
-    let negativas=ultimos.filter(r=>r.emocion.includes("Ansioso")||r.emocion.includes("Triste")||r.emocion.includes("Enojado")).length;
-    if(negativas>=4)
-        document.getElementById("alertaEstres").innerHTML="🚨 Estrés recurrente detectado. Considera descanso profundo.";
-}
+let graficoGeneral;
+let graficoLunar;
 
 /* ===== FASE LUNAR ===== */
 
@@ -327,40 +166,135 @@ function calcularFaseLunar(fecha = new Date()) {
 function mostrarFaseLunar(){
     const fase = calcularFaseLunar();
     document.getElementById("faseLunar").innerHTML = `<strong>${fase}</strong>`;
-    analizarInfluenciaLunar(fase);
 }
 
-function analizarInfluenciaLunar(fase){
-    let historial = JSON.parse(localStorage.getItem("registroEmocional")) || [];
-    let mensaje = document.getElementById("mensajeLunar");
+/* ===== REGISTRO ===== */
 
-    if(historial.length === 0){
-        mensaje.innerHTML = "Registra emociones para analizar posible influencia lunar.";
+function guardarEmocion(){
+    let emocion=document.getElementById("emocion").value;
+    let nota=document.getElementById("nota").value;
+    let fecha=new Date().toLocaleDateString();
+    let hora=new Date().toLocaleTimeString();
+    let fase=calcularFaseLunar();
+
+    let registro={fecha,hora,emocion,nota,fase};
+
+    let historial=JSON.parse(localStorage.getItem("registroEmocional"))||[];
+    historial.push(registro);
+    localStorage.setItem("registroEmocional",JSON.stringify(historial));
+
+    document.getElementById("nota").value="";
+    mostrarHistorial();
+    actualizarAnalisis();
+}
+
+function borrarHistorial(){
+    localStorage.removeItem("registroEmocional");
+    mostrarHistorial();
+    actualizarAnalisis();
+}
+
+function mostrarHistorial(){
+    let historial=JSON.parse(localStorage.getItem("registroEmocional"))||[];
+    let cont=document.getElementById("historial");
+    cont.innerHTML="";
+    historial.slice().reverse().forEach(r=>{
+        cont.innerHTML+=`<div><strong>${r.fecha} ${r.hora}</strong><br>${r.emocion}<br><small>${r.fase}</small><hr></div>`;
+    });
+}
+
+/* ===== ANALÍTICA ===== */
+
+function actualizarAnalisis(){
+    let historial=JSON.parse(localStorage.getItem("registroEmocional"))||[];
+    if(historial.length===0){
+        document.getElementById("resumenEmocional").innerHTML="Sin datos.";
+        document.getElementById("correlacionLunar").innerHTML="";
+        if(graficoGeneral)graficoGeneral.destroy();
+        if(graficoLunar)graficoLunar.destroy();
         return;
     }
 
-    let ultimas = historial.slice(-5);
-    let negativas = ultimas.filter(r => 
-        r.emocion.includes("Ansioso") ||
-        r.emocion.includes("Triste") ||
-        r.emocion.includes("Enojado")
-    ).length;
+    let resumen={}, fases={};
 
-    if(fase.includes("Luna Llena") && negativas >= 3){
-        mensaje.innerHTML = "La Luna Llena puede intensificar emociones. Practica más respiración consciente.";
-    }
-    else if(fase.includes("Luna Nueva")){
-        mensaje.innerHTML = "La Luna Nueva es ideal para nuevos comienzos emocionales.";
-    }
-    else{
-        mensaje.innerHTML = "Observa si notas cambios emocionales según la fase lunar.";
+    historial.forEach(r=>{
+        resumen[r.emocion]=(resumen[r.emocion]||0)+1;
+        if(!fases[r.fase])fases[r.fase]=[];
+        fases[r.fase].push(r.emocion);
+    });
+
+    mostrarResumen(resumen);
+    generarGraficoGeneral(resumen);
+    analizarCorrelacion(fases);
+    generarGraficoLunar(fases);
+}
+
+function mostrarResumen(resumen){
+    let cont=document.getElementById("resumenEmocional");
+    cont.innerHTML="";
+    for(let e in resumen){
+        cont.innerHTML+=`${e}: <strong>${resumen[e]}</strong><br>`;
     }
 }
 
+function generarGraficoGeneral(resumen){
+    let ctx=document.getElementById("graficoEmociones").getContext("2d");
+    if(graficoGeneral)graficoGeneral.destroy();
+    graficoGeneral=new Chart(ctx,{
+        type:"doughnut",
+        data:{labels:Object.keys(resumen),
+        datasets:[{data:Object.values(resumen)}]}
+    });
+}
+
+function analizarCorrelacion(fases){
+    let cont=document.getElementById("correlacionLunar");
+    cont.innerHTML="";
+
+    for(let fase in fases){
+        let lista=fases[fase];
+        let negativas=lista.filter(e=>e.includes("Ansioso")||e.includes("Triste")||e.includes("Enojado")).length;
+        let porcentaje=Math.round((negativas/lista.length)*100);
+
+        cont.innerHTML+=`<strong>${fase}</strong>: ${porcentaje}% emociones desafiantes<br>`;
+    }
+}
+
+function generarGraficoLunar(fases){
+    let etiquetas=[];
+    let datos=[];
+
+    for(let fase in fases){
+        let negativas=fases[fase].filter(e=>
+            e.includes("Ansioso")||
+            e.includes("Triste")||
+            e.includes("Enojado")
+        ).length;
+
+        etiquetas.push(fase);
+        datos.push(negativas);
+    }
+
+    let ctx=document.getElementById("graficoLunar").getContext("2d");
+    if(graficoLunar)graficoLunar.destroy();
+    graficoLunar=new Chart(ctx,{
+        type:"bar",
+        data:{
+            labels:etiquetas,
+            datasets:[{
+                label:"Emociones desafiantes por fase lunar",
+                data:datos
+            }]
+        }
+    });
+}
+
+/* ===== INIT ===== */
+
 mostrarHistorial();
-mostrarResumenEmocional();
 actualizarAnalisis();
 mostrarFaseLunar();
+
 </script>
 
 </body>
