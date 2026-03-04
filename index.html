@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html> 
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -139,6 +139,10 @@ canvas{
 
 <h3>Alerta emocional</h3>
 <div id="alertaEstres" style="font-weight:bold;"></div>
+
+<h3>Fase lunar actual</h3>
+<div id="faseLunar"></div>
+<div id="mensajeLunar" style="font-style:italic;"></div>
 
 <h3>Filtro</h3>
 <select id="filtroTiempo" onchange="actualizarAnalisis()">
@@ -302,9 +306,61 @@ function analizarPatronEmocional(historial){
         document.getElementById("alertaEstres").innerHTML="🚨 Estrés recurrente detectado. Considera descanso profundo.";
 }
 
+/* ===== FASE LUNAR ===== */
+
+function calcularFaseLunar(fecha = new Date()) {
+    const lp = 2551443;
+    const now = fecha.getTime() / 1000;
+    const new_moon = new Date('2001-01-24T13:00:00Z').getTime() / 1000;
+    const phase = ((now - new_moon) % lp) / lp;
+
+    if (phase < 0.03 || phase > 0.97) return "🌑 Luna Nueva";
+    if (phase < 0.22) return "🌒 Luna Creciente";
+    if (phase < 0.28) return "🌓 Cuarto Creciente";
+    if (phase < 0.47) return "🌔 Gibosa Creciente";
+    if (phase < 0.53) return "🌕 Luna Llena";
+    if (phase < 0.72) return "🌖 Gibosa Menguante";
+    if (phase < 0.78) return "🌗 Cuarto Menguante";
+    return "🌘 Luna Menguante";
+}
+
+function mostrarFaseLunar(){
+    const fase = calcularFaseLunar();
+    document.getElementById("faseLunar").innerHTML = `<strong>${fase}</strong>`;
+    analizarInfluenciaLunar(fase);
+}
+
+function analizarInfluenciaLunar(fase){
+    let historial = JSON.parse(localStorage.getItem("registroEmocional")) || [];
+    let mensaje = document.getElementById("mensajeLunar");
+
+    if(historial.length === 0){
+        mensaje.innerHTML = "Registra emociones para analizar posible influencia lunar.";
+        return;
+    }
+
+    let ultimas = historial.slice(-5);
+    let negativas = ultimas.filter(r => 
+        r.emocion.includes("Ansioso") ||
+        r.emocion.includes("Triste") ||
+        r.emocion.includes("Enojado")
+    ).length;
+
+    if(fase.includes("Luna Llena") && negativas >= 3){
+        mensaje.innerHTML = "La Luna Llena puede intensificar emociones. Practica más respiración consciente.";
+    }
+    else if(fase.includes("Luna Nueva")){
+        mensaje.innerHTML = "La Luna Nueva es ideal para nuevos comienzos emocionales.";
+    }
+    else{
+        mensaje.innerHTML = "Observa si notas cambios emocionales según la fase lunar.";
+    }
+}
+
 mostrarHistorial();
 mostrarResumenEmocional();
 actualizarAnalisis();
+mostrarFaseLunar();
 </script>
 
 </body>
