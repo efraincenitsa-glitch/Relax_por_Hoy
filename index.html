@@ -5,9 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Pausa de Calma</title>
 
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#1e3c72">
-
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
@@ -22,36 +19,23 @@ body{
     color:white;
     text-align:center;
 }
-
 .container{
     background:rgba(0,0,0,0.3);
     padding:30px;
     border-radius:25px;
     backdrop-filter: blur(15px);
     width:90%;
-    max-width:550px;
+    max-width:600px;
 }
-
-.circle{
-    width:150px;
-    height:150px;
-    border-radius:50%;
-    background:rgba(255,255,255,0.4);
-    margin:20px auto;
-    transition:transform 4s ease-in-out;
-}
-
 button{
-    padding:12px 25px;
+    padding:10px 20px;
     border:none;
-    border-radius:25px;
+    border-radius:20px;
     background:white;
     color:#1e3c72;
-    font-size:16px;
     margin:5px;
     cursor:pointer;
 }
-
 select, textarea{
     padding:8px;
     border-radius:10px;
@@ -59,26 +43,6 @@ select, textarea{
     margin-top:10px;
     width:90%;
 }
-
-textarea{
-    resize:none;
-    height:60px;
-}
-
-.frase{
-    margin-top:15px;
-    font-style:italic;
-    min-height:40px;
-}
-
-.historial{
-    margin-top:15px;
-    font-size:14px;
-    max-height:120px;
-    overflow:auto;
-    text-align:left;
-}
-
 canvas{
     margin-top:20px;
     background:white;
@@ -90,24 +54,7 @@ canvas{
 
 <div class="container">
 
-<h2>Respira</h2>
-<div class="circle" id="circle"></div>
-<p id="instruccion">Presiona iniciar</p>
-
-<button onclick="iniciar()">Iniciar</button>
-<button onclick="detener()">Detener</button>
-
-<br>
-<label>Duración:</label>
-<select id="duracion">
-<option value="300000">5 minutos</option>
-<option value="600000">10 minutos</option>
-<option value="900000">15 minutos</option>
-</select>
-
-<div class="frase" id="frase"></div>
-
-<h3>Registro emocional diario</h3>
+<h2>Registro emocional lunar</h2>
 
 <select id="emocion">
 <option value="😊 Feliz">😊 Feliz</option>
@@ -122,27 +69,23 @@ canvas{
 
 <textarea id="nota" placeholder="Nota opcional..."></textarea>
 
+<br>
 <button onclick="guardarEmocion()">Guardar emoción</button>
 <button onclick="borrarHistorial()">Borrar historial</button>
 
-<div class="historial" id="historial"></div>
+<div id="historial"></div>
 
-<h3>Resumen emocional general</h3>
-<div id="resumenEmocional"></div>
+<h3>Índice estadístico lunar (r)</h3>
+<div id="indiceEstadistico"></div>
 
-<h3>Correlación Luna vs Emociones</h3>
-<div id="correlacionLunar"></div>
+<h3>Predicción emocional según fase actual</h3>
+<div id="prediccion"></div>
 
-<h3>Fase lunar actual</h3>
-<div id="faseLunar"></div>
-
-<canvas id="graficoEmociones"></canvas>
 <canvas id="graficoLunar"></canvas>
 
 </div>
 
 <script>
-let graficoGeneral;
 let graficoLunar;
 
 /* ===== FASE LUNAR ===== */
@@ -163,21 +106,36 @@ function calcularFaseLunar(fecha = new Date()) {
     return "🌘 Luna Menguante";
 }
 
-function mostrarFaseLunar(){
-    const fase = calcularFaseLunar();
-    document.getElementById("faseLunar").innerHTML = `<strong>${fase}</strong>`;
-}
+const faseNumerica = {
+"🌑 Luna Nueva":0,
+"🌒 Luna Creciente":1,
+"🌓 Cuarto Creciente":2,
+"🌔 Gibosa Creciente":3,
+"🌕 Luna Llena":4,
+"🌖 Gibosa Menguante":5,
+"🌗 Cuarto Menguante":6,
+"🌘 Luna Menguante":7
+};
+
+const valorEmocion = {
+"😊 Feliz":1,
+"😌 Tranquilo":0.7,
+"🙏 Agradecido":0.8,
+"💪 Fuerte":0.9,
+"😴 Cansado":-0.2,
+"😔 Triste":-0.8,
+"😟 Ansioso":-1,
+"😤 Enojado":-0.9
+};
 
 /* ===== REGISTRO ===== */
 
 function guardarEmocion(){
     let emocion=document.getElementById("emocion").value;
     let nota=document.getElementById("nota").value;
-    let fecha=new Date().toLocaleDateString();
-    let hora=new Date().toLocaleTimeString();
     let fase=calcularFaseLunar();
 
-    let registro={fecha,hora,emocion,nota,fase};
+    let registro={emocion,nota,fase};
 
     let historial=JSON.parse(localStorage.getItem("registroEmocional"))||[];
     historial.push(registro);
@@ -185,13 +143,13 @@ function guardarEmocion(){
 
     document.getElementById("nota").value="";
     mostrarHistorial();
-    actualizarAnalisis();
+    analizarDatos();
 }
 
 function borrarHistorial(){
     localStorage.removeItem("registroEmocional");
     mostrarHistorial();
-    actualizarAnalisis();
+    analizarDatos();
 }
 
 function mostrarHistorial(){
@@ -199,92 +157,97 @@ function mostrarHistorial(){
     let cont=document.getElementById("historial");
     cont.innerHTML="";
     historial.slice().reverse().forEach(r=>{
-        cont.innerHTML+=`<div><strong>${r.fecha} ${r.hora}</strong><br>${r.emocion}<br><small>${r.fase}</small><hr></div>`;
+        cont.innerHTML+=`<div>${r.emocion} - ${r.fase}<hr></div>`;
     });
 }
 
-/* ===== ANALÍTICA ===== */
+/* ===== CORRELACIÓN REAL ===== */
 
-function actualizarAnalisis(){
+function analizarDatos(){
     let historial=JSON.parse(localStorage.getItem("registroEmocional"))||[];
-    if(historial.length===0){
-        document.getElementById("resumenEmocional").innerHTML="Sin datos.";
-        document.getElementById("correlacionLunar").innerHTML="";
-        if(graficoGeneral)graficoGeneral.destroy();
-        if(graficoLunar)graficoLunar.destroy();
+    if(historial.length<5){
+        document.getElementById("indiceEstadistico").innerHTML="Se necesitan más datos (mínimo 5 registros).";
         return;
     }
 
-    let resumen={}, fases={};
+    let x=[], y=[];
 
     historial.forEach(r=>{
-        resumen[r.emocion]=(resumen[r.emocion]||0)+1;
-        if(!fases[r.fase])fases[r.fase]=[];
-        fases[r.fase].push(r.emocion);
+        x.push(faseNumerica[r.fase]);
+        y.push(valorEmocion[r.emocion]);
     });
 
-    mostrarResumen(resumen);
-    generarGraficoGeneral(resumen);
-    analizarCorrelacion(fases);
-    generarGraficoLunar(fases);
+    let r = correlacionPearson(x,y);
+
+    interpretarCorrelacion(r);
+    generarGrafico(x,y);
+    predecirEmocion(r);
 }
 
-function mostrarResumen(resumen){
-    let cont=document.getElementById("resumenEmocional");
-    cont.innerHTML="";
-    for(let e in resumen){
-        cont.innerHTML+=`${e}: <strong>${resumen[e]}</strong><br>`;
-    }
-}
+function correlacionPearson(x,y){
+    let n=x.length;
+    let sumX=0,sumY=0,sumXY=0,sumX2=0,sumY2=0;
 
-function generarGraficoGeneral(resumen){
-    let ctx=document.getElementById("graficoEmociones").getContext("2d");
-    if(graficoGeneral)graficoGeneral.destroy();
-    graficoGeneral=new Chart(ctx,{
-        type:"doughnut",
-        data:{labels:Object.keys(resumen),
-        datasets:[{data:Object.values(resumen)}]}
-    });
-}
-
-function analizarCorrelacion(fases){
-    let cont=document.getElementById("correlacionLunar");
-    cont.innerHTML="";
-
-    for(let fase in fases){
-        let lista=fases[fase];
-        let negativas=lista.filter(e=>e.includes("Ansioso")||e.includes("Triste")||e.includes("Enojado")).length;
-        let porcentaje=Math.round((negativas/lista.length)*100);
-
-        cont.innerHTML+=`<strong>${fase}</strong>: ${porcentaje}% emociones desafiantes<br>`;
-    }
-}
-
-function generarGraficoLunar(fases){
-    let etiquetas=[];
-    let datos=[];
-
-    for(let fase in fases){
-        let negativas=fases[fase].filter(e=>
-            e.includes("Ansioso")||
-            e.includes("Triste")||
-            e.includes("Enojado")
-        ).length;
-
-        etiquetas.push(fase);
-        datos.push(negativas);
+    for(let i=0;i<n;i++){
+        sumX+=x[i];
+        sumY+=y[i];
+        sumXY+=x[i]*y[i];
+        sumX2+=x[i]*x[i];
+        sumY2+=y[i]*y[i];
     }
 
+    return (n*sumXY - sumX*sumY) /
+           Math.sqrt((n*sumX2 - sumX*sumX) * (n*sumY2 - sumY*sumY));
+}
+
+function interpretarCorrelacion(r){
+    let fuerza="";
+    let abs=Math.abs(r);
+
+    if(abs<0.2) fuerza="Correlación muy débil o inexistente";
+    else if(abs<0.4) fuerza="Correlación débil";
+    else if(abs<0.6) fuerza="Correlación moderada";
+    else if(abs<0.8) fuerza="Correlación fuerte";
+    else fuerza="Correlación muy fuerte";
+
+    document.getElementById("indiceEstadistico").innerHTML=
+        `r = ${r.toFixed(3)} → ${fuerza}`;
+}
+
+/* ===== PREDICCIÓN ===== */
+
+function predecirEmocion(r){
+    let faseActual=calcularFaseLunar();
+    let valorFase=faseNumerica[faseActual];
+
+    let tendencia=r>0 ? "más positiva" : "más introspectiva o sensible";
+
+    document.getElementById("prediccion").innerHTML=
+        `Según tu historial y la fase actual (${faseActual}), `+
+        `la tendencia emocional podría ser ${tendencia}.`;
+}
+
+/* ===== GRÁFICO DISPERSIÓN ===== */
+
+function generarGrafico(x,y){
     let ctx=document.getElementById("graficoLunar").getContext("2d");
     if(graficoLunar)graficoLunar.destroy();
+
+    let puntos=x.map((val,i)=>({x:val,y:y[i]}));
+
     graficoLunar=new Chart(ctx,{
-        type:"bar",
+        type:"scatter",
         data:{
-            labels:etiquetas,
             datasets:[{
-                label:"Emociones desafiantes por fase lunar",
-                data:datos
+                label:"Fase lunar vs Estado emocional",
+                data:puntos
             }]
+        },
+        options:{
+            scales:{
+                x:{title:{display:true,text:"Fase Lunar (0-7)"}},
+                y:{title:{display:true,text:"Estado Emocional (-1 a +1)"}}
+            }
         }
     });
 }
@@ -292,8 +255,7 @@ function generarGraficoLunar(fases){
 /* ===== INIT ===== */
 
 mostrarHistorial();
-actualizarAnalisis();
-mostrarFaseLunar();
+analizarDatos();
 
 </script>
 
