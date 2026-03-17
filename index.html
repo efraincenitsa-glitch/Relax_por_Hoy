@@ -6,7 +6,6 @@
 
 <title>Pausa de Calma</title>
 
-<!-- CONFIGURACIÓN IPHONE -->
 <link rel="apple-touch-icon" href="icon-1024.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -216,23 +215,31 @@ function mostrarHistorial(){
 
 /* ANALÍTICA */
 
-let graf1,graf2;
-
 function analizar(){
     let historial=JSON.parse(localStorage.getItem("registro"))||[];
     document.getElementById("faseActual").innerHTML=calcularFaseLunar();
+
     if(historial.length<5){
         document.getElementById("indice").innerHTML="Mínimo 5 registros.";
         return;
     }
+
     let x=[],y=[];
     historial.forEach(r=>{
         x.push(faseNum[r.fase]);
         y.push(valorEmocion[r.emocion]);
     });
+
     let r=pearson(x,y);
     document.getElementById("indice").innerHTML=`r = ${r.toFixed(3)}`;
-    document.getElementById("prediccion").innerHTML=`Tendencia ${r>0?"positiva":"introspectiva"}`;
+
+    let predBase = `Tendencia ${r>0?"positiva":"introspectiva"}`;
+    let predAvanzada = prediccionAvanzada(historial);
+
+    document.getElementById("prediccion").innerHTML = `
+    ${predBase}<br><br>
+    ${predAvanzada}
+    `;
 }
 
 function pearson(x,y){
@@ -244,6 +251,51 @@ function pearson(x,y){
         sumY2+=y[i]*y[i];
     }
     return (n*sumXY-sumX*sumY)/Math.sqrt((n*sumX2-sumX*sumX)*(n*sumY2-sumY*sumY));
+}
+
+/* NUEVA IA LOCAL (OFFLINE) */
+
+function prediccionAvanzada(historial){
+    let mapaFases={};
+
+    historial.forEach(r=>{
+        if(!mapaFases[r.fase]) mapaFases[r.fase]=[];
+        mapaFases[r.fase].push(valorEmocion[r.emocion]);
+    });
+
+    let promedios={};
+    for(let f in mapaFases){
+        let arr=mapaFases[f];
+        promedios[f]=arr.reduce((a,b)=>a+b,0)/arr.length;
+    }
+
+    let faseActual=calcularFaseLunar();
+    let valorPredicho=promedios[faseActual];
+
+    if(valorPredicho===undefined){
+        return "Aún no hay suficientes datos para esta fase.";
+    }
+
+    let estado="";
+    if(valorPredicho>0.5) estado="Alta energía positiva ✨";
+    else if(valorPredicho>0) estado="Estado equilibrado 🙂";
+    else if(valorPredicho>-0.5) estado="Tendencia introspectiva 🌙";
+    else estado="Momento emocional sensible 💭";
+
+    let recomendacion = valorPredicho<0 
+        ? "💡 Recomendación: descanso, reflexión o meditación."
+        : "💡 Recomendación: aprovecha para actuar y avanzar.";
+
+    let total=historial.length;
+    let confianza= total>20 ? "Alta" : total>10 ? "Media" : "Baja";
+
+    return `
+    ${estado}<br>
+    🔎 Fase actual: ${faseActual}<br>
+    📊 Valor estimado: ${valorPredicho.toFixed(2)}<br>
+    📈 Confianza: ${confianza}<br>
+    ${recomendacion}
+    `;
 }
 
 mostrarHistorial();
