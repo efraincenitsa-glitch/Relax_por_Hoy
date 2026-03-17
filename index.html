@@ -231,7 +231,18 @@ function analizar(){
     });
 
     let r=pearson(x,y);
-    document.getElementById("indice").innerHTML=`r = ${r.toFixed(3)}`;
+
+    let interpretacion = "";
+    if(r >= 0.7) interpretacion = "Correlación positiva fuerte 📈";
+    else if(r >= 0.3) interpretacion = "Correlación positiva moderada 🙂";
+    else if(r > -0.3) interpretacion = "Relación débil o nula ⚖️";
+    else if(r > -0.7) interpretacion = "Correlación negativa moderada 🌙";
+    else interpretacion = "Correlación negativa fuerte 📉";
+
+    document.getElementById("indice").innerHTML = `
+    r = ${r.toFixed(3)}<br>
+    ${interpretacion}
+    `;
 
     let predBase = `Tendencia ${r>0?"positiva":"introspectiva"}`;
     let predAvanzada = prediccionAvanzada(historial);
@@ -253,7 +264,7 @@ function pearson(x,y){
     return (n*sumXY-sumX*sumY)/Math.sqrt((n*sumX2-sumX*sumX)*(n*sumY2-sumY*sumY));
 }
 
-/* NUEVA IA LOCAL (OFFLINE) */
+/* IA LOCAL */
 
 function prediccionAvanzada(historial){
     let mapaFases={};
